@@ -1,0 +1,6 @@
+# Backend
+easyservice-backend/target/**
+easyservice-backend/dbConfig.cfg
+easyservice-backend/nbactions.xml
+
+# Frontend
