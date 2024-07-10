@@ -1,0 +1,6 @@
+# Backend
+easyservice-backend/.mvn
+easyservice-backend/target/**
+easyservice-backend/nbactions.xml
+
+# Frontend
