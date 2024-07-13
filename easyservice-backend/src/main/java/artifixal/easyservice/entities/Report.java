@@ -30,8 +30,11 @@ public class Report extends BaseEntity{
     /**
      * Date when report was created.
      */
-    @Column(nullable=false)
+    @Column(nullable=false,updatable=false)
     public Timestamp reportDate;
+    
+    @Column(nullable=false)
+    public Timestamp lastEdited;
     
     @Column(columnDefinition="TEXT",nullable=false)
     public String content;
