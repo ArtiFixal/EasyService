@@ -7,8 +7,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import java.io.IOException;
-import java.sql.SQLException;
 import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -53,7 +51,7 @@ public class Part extends BaseEntity{
     @OneToMany(mappedBy="part")
     protected List<Compatibility> compatibleDevices;
 
-    public Part(Long id,PartType type,Manufacturer manufacturer,String name,long quantity,List<Parameter> params) throws IOException, SQLException{
+    public Part(Long id,PartType type,Manufacturer manufacturer,String name,long quantity,List<Parameter> params) {
         super(id);
         this.type=type;
         this.manufacturer=manufacturer;
