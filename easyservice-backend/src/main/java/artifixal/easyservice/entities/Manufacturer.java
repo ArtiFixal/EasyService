@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 /**
  * Entity class representing manufacturer of part or device.
@@ -15,6 +16,7 @@ import lombok.EqualsAndHashCode;
 @Table(name="manufacturers")
 @Data
 @EqualsAndHashCode(callSuper=true)
+@NoArgsConstructor
 public class Manufacturer extends BaseEntity{
     
     /**

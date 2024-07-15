@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 
 /**
@@ -16,6 +17,7 @@ import lombok.NonNull;
 @Table(name="statuses")
 @Data
 @EqualsAndHashCode(callSuper=true)
+@NoArgsConstructor
 public class Status extends BaseEntity{
     
     /**

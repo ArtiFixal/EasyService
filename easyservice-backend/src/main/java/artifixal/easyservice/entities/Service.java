@@ -6,6 +6,7 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 /**
  * Entity class representing service performed during repair.
@@ -16,6 +17,7 @@ import lombok.EqualsAndHashCode;
 @Table(name="services")
 @Data
 @EqualsAndHashCode(callSuper=true)
+@NoArgsConstructor
 public class Service extends BaseEntity{
     
     /**

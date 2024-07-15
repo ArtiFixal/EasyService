@@ -8,6 +8,7 @@ import jakarta.persistence.Table;
 import java.sql.Timestamp;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 /**
  * Entity class representing {@link Repair} report.
@@ -18,6 +19,7 @@ import lombok.EqualsAndHashCode;
 @Table(name="reports")
 @Data
 @EqualsAndHashCode(callSuper=true)
+@NoArgsConstructor
 public class Report extends BaseEntity{
 
     /**

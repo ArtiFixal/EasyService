@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 /**
  * Entity class representing employee.
@@ -15,6 +16,7 @@ import lombok.EqualsAndHashCode;
 @Table(name="employees")
 @Data
 @EqualsAndHashCode(callSuper=true)
+@NoArgsConstructor
 public class Employee extends Person{
     
     @Column(nullable=false)

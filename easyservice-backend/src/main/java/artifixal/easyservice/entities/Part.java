@@ -10,6 +10,7 @@ import jakarta.persistence.Table;
 import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 /**
  * Entity class representing part.
@@ -20,6 +21,7 @@ import lombok.EqualsAndHashCode;
 @Table(name="parts")
 @Data
 @EqualsAndHashCode(callSuper=true)
+@NoArgsConstructor
 public class Part extends BaseEntity{
     
     @ManyToOne

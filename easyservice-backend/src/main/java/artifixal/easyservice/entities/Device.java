@@ -9,6 +9,7 @@ import jakarta.persistence.Table;
 import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 /**
  * Entity class representing device.
@@ -19,6 +20,7 @@ import lombok.EqualsAndHashCode;
 @Table(name="devices")
 @Data
 @EqualsAndHashCode(callSuper=true)
+@NoArgsConstructor
 public class Device extends BaseEntity{
     
     @ManyToOne

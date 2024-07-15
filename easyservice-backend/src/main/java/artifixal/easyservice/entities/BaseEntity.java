@@ -20,6 +20,10 @@ public abstract class BaseEntity implements Serializable{
     @GeneratedValue(strategy=GenerationType.IDENTITY)
     private final Long id;
 
+    public BaseEntity(){
+        this.id=0l;
+    }
+
     public BaseEntity(Long id){
         this.id=id;
     }

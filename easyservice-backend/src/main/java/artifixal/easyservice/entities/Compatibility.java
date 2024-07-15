@@ -7,6 +7,7 @@ import jakarta.persistence.MapsId;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Entity class representing part compatibility with devices.
@@ -16,6 +17,7 @@ import lombok.Data;
 @Entity
 @Table(name="compatibilities")
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 public class Compatibility {
     

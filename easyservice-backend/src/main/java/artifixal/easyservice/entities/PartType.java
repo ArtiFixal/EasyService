@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 /**
  * Entity class representing type of part.
@@ -15,6 +16,7 @@ import lombok.EqualsAndHashCode;
 @Table(name="types")
 @Data
 @EqualsAndHashCode(callSuper=true)
+@NoArgsConstructor
 public class PartType extends BaseEntity{
     
     /**

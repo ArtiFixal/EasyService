@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 /**
  * Base class for entities containing personal data.
@@ -13,6 +14,7 @@ import lombok.EqualsAndHashCode;
 @MappedSuperclass
 @Data
 @EqualsAndHashCode(callSuper=true)
+@NoArgsConstructor
 public abstract class Person extends BaseEntity{
     
     @Column(length=30,nullable=false)
