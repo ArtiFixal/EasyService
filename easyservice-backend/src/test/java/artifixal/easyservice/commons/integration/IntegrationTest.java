@@ -5,8 +5,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 
@@ -122,6 +124,40 @@ public class IntegrationTest {
             protected ResponseEntity sendRequest(String mappingPath,Object request,Class responseType){
                 return restTemplate.exchange(getURL()+mappingPath,
                         HttpMethod.PUT,new HttpEntity<>(request),responseType);
+            }
+        };
+    }
+    
+    /**
+     * Creates PATCH request object with given path to request and status to test.
+     * 
+     * @param mappingPath Path at which anotated controller method is available.
+     * @param expectedStatus Status to test for.
+     * 
+     * @return REST PATCH request.
+     */
+    protected RestMethodRequest patch(String mappingPath,HttpStatus expectedStatus){
+        return patch(mappingPath,expectedStatus,Object.class);
+    }
+    
+    /**
+     * Creates PATCH request object with given path to request and status to test.
+     * 
+     * @param mappingPath Path at which anotated controller method is available.
+     * @param expectedStatus Status to test for.
+     * @param responseType Response body type.
+     * 
+     * @return REST PATCH request.
+     */
+    protected RestMethodRequest patch(String mappingPath,HttpStatus expectedStatus,Class responseType){
+        return new RestMethodRequest(mappingPath,expectedStatus,responseType){
+            @Override
+            protected ResponseEntity sendRequest(String url,Object request,Class responseType){
+                HttpHeaders headers=new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                return restTemplate.exchange(getURL()+mappingPath,HttpMethod.PATCH,
+                        new HttpEntity<>(request,headers),responseType);
+                
             }
         };
     }
