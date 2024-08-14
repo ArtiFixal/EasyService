@@ -1,6 +1,6 @@
 package artifixal.easyservice.controllers;
 
-import artifixal.easyservice.commons.IntegrationTest;
+import artifixal.easyservice.commons.integration.IntegrationTest;
 import artifixal.easyservice.dtos.DeviceDTO;
 import artifixal.easyservice.entities.Device;
 import artifixal.easyservice.entities.Manufacturer;
@@ -8,7 +8,6 @@ import artifixal.easyservice.repositories.DeviceRepository;
 import artifixal.easyservice.repositories.ManufacturerRepository;
 import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -33,9 +32,10 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
         Device toInsert=new Device(0l,insertDummyManufacturer(),"GoodPC Get",
                 "GPCGET");
         toInsert=deviceRepo.save(toInsert);
-        ResponseEntity<DeviceDTO> response=getAndTest(
-                "/v1/devices/getDevice/"+toInsert.getId(),DeviceDTO.class,
-                HttpStatus.OK);
+        ResponseEntity<DeviceDTO> response=
+                get("/v1/devices/getDevice/"+toInsert.getId(),HttpStatus.OK,
+                        DeviceDTO.class)
+                .test();
         assertEquals(toInsert.getId(),response.getBody().getId().get());
         assertEquals(toInsert.getName(),response.getBody().getName());
         assertEquals(toInsert.getSerialNumber(),response.getBody()
@@ -44,39 +44,44 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
     
     @Test
     public void shouldNotGetDeviceDtoNonexistingID(){
-        Object responseBody=getAndTest("/v1/devices/getDevice/10000",
-                String.class,HttpStatus.NOT_FOUND).getBody();
-        assertNotNull(responseBody);
+        get("/v1/devices/getDevice/10000",HttpStatus.NOT_FOUND)
+                // Should return error.
+                .responseBodyNotNull()
+                .test();
     }
     
     @Test
     public void addDevice(){
-        long manufacturerID=insertDummyManufacturer().getId();
-        testRowCountAfterRequest(()->postAndTest("/v1/devices/addDevice",
-                new DeviceDTO(
-                        Optional.empty(),
-                        manufacturerID,
-                        "Good PC 1",
-                        "GPC111"
-                ),
-                HttpStatus.OK),deviceRepo,1);
+        post("/v1/devices/addDevice",HttpStatus.OK)
+                .testRowChange(deviceRepo,1)
+                .test(
+                        new DeviceDTO(
+                            Optional.empty(),
+                            insertDummyManufacturer().getId(),
+                            "Good PC 1",
+                            "GPC111"
+                        )
+                );
     }
     
     @Test
     public void shouldNotAddDeviceNonexistentManufacturer(){
-        testRowCountAfterRequest(()->postAndTest("/v1/devices/addDevice",
-                new DeviceDTO(
-                        Optional.empty(),
-                        100000,
-                        "Good PC 2",
-                        "GPC222"
-                ),
-                HttpStatus.NOT_FOUND),deviceRepo,0,testForNotNullResponseBody());
+        post("/v1/devices/addDevice",HttpStatus.NOT_FOUND)
+                .testRowChange(deviceRepo,0)
+                .responseBodyNotNull()
+                .test(
+                        new DeviceDTO(
+                            Optional.empty(),
+                            100000,
+                            "Good PC 2",
+                            "GPC222"
+                        )
+                );
     }
     
     @Test
     public void shouldNotAddDeviceBlankName(){
-        testPostForBadRequestAndNoRowCountChange("/v1/devices/addDevice",
+        testPostForBadRequestAndNoRowCountChangeAndResponseBody("/v1/devices/addDevice",
                 new DeviceDTO(
                         Optional.empty(),
                         insertDummyManufacturer().getId(),
@@ -88,7 +93,7 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
     
     @Test
     public void shouldNotAddDeviceBlankSerialNumber(){
-        testPostForBadRequestAndNoRowCountChange("/v1/devices/addDevice",
+        testPostForBadRequestAndNoRowCountChangeAndResponseBody("/v1/devices/addDevice",
                 new DeviceDTO(
                         Optional.empty(),
                         insertDummyManufacturer().getId(),
@@ -106,20 +111,22 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
         final DeviceDTO dataToUpdate=new DeviceDTO(Optional.of(device.getId()),
                 newMan.getId(),"GoodPC edited","GPCEEE");
         
-        testRowCountAfterRequest(()->putAndTest("/v1/devices/editDevice",
-                dataToUpdate,HttpStatus.OK),deviceRepo,0);
+        put("/v1/devices/editDevice",HttpStatus.OK)
+                .testRowChange(deviceRepo,0)
+                .responseBodyNotNull()
+                .test(dataToUpdate);
         // Update device reference
         device=deviceRepo.findById(device.getId()).get();
         
         assertEquals(dataToUpdate.getManufacturerID(),device.getManufacturer()
-                .getId(),"Manufacturer didn't changed");
+                .getId(),"Manufacturer have not changed");
         assertEquals(dataToUpdate.getName(),device.getName());
         assertEquals(dataToUpdate.getSerialNumber(),device.getSerialNumber());
     }
     
     @Test
     public void shouldNotEditDeviceNoDtoID(){
-        testPutForBadRequestAndNoRowCountChange("/v1/devices/editDevice",
+        testPutForBadRequestAndNoRowCountChangeAndResponseBody("/v1/devices/editDevice",
                 new DeviceDTO(
                         Optional.empty(),
                         insertDummyManufacturer().getId(),
@@ -131,20 +138,21 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
     
     @Test
     public void shouldNotEditDeviceNonexistentID(){
-        testPutForNotFoundAndNoRowCountChange("/v1/devices/editDevice",
+        testPutForNotFoundAndNoRowCountChangeAndResponseBody("/v1/devices/editDevice",
                 new DeviceDTO(
                         Optional.of(100000l),
                         insertDummyManufacturer().getId(),
                         "GoodPC Nonexistent ID",
-                        "GPCNEX")
+                        "GPCNEX"
+                )
         );
     }
     
     @Test
     public void shouldNotEditDeviceNonexistentManufacturer(){
-        testPutForBadRequestAndNoRowCountChange("/v1/devices/editDevice",
+        testPutForNotFoundAndNoRowCountChangeAndResponseBody("/v1/devices/editDevice",
                 new DeviceDTO(
-                        Optional.empty(),
+                        Optional.of(insertDummyDevice().getId()),
                         100000,
                         "GoodPC no manufacturer",
                         "GPCNMA"
@@ -154,7 +162,7 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
     
     @Test
     public void shouldNotEditDeviceBlankName(){
-        testPutForBadRequestAndNoRowCountChange("/v1/devices/editDevice",
+        testPutForBadRequestAndNoRowCountChangeAndResponseBody("/v1/devices/editDevice",
                 new DeviceDTO(
                         Optional.empty(),
                         insertDummyManufacturer().getId(),
@@ -166,7 +174,7 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
     
     @Test
     public void shouldNotEditDeviceBlankSerialNumber(){
-        testPutForBadRequestAndNoRowCountChange("/v1/devices/editDevice",
+        testPutForBadRequestAndNoRowCountChangeAndResponseBody("/v1/devices/editDevice",
                 new DeviceDTO(
                         Optional.empty(),
                         insertDummyManufacturer().getId(),
@@ -176,19 +184,25 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
         );
     }
     
-    private void testPostForBadRequestAndNoRowCountChange(String mappingPath,DeviceDTO device){
-        testRowCountAfterRequest(()->postAndTest(mappingPath,device,
-                HttpStatus.BAD_REQUEST),deviceRepo,0,testForNotNullResponseBody());
+    private void testPostForBadRequestAndNoRowCountChangeAndResponseBody(String mappingPath,DeviceDTO device){
+        post(mappingPath,HttpStatus.BAD_REQUEST)
+                .testRowChange(deviceRepo,0)
+                .responseBodyNotNull()
+                .test(device);
     }
     
-    private void testPutForBadRequestAndNoRowCountChange(String mappingPath,DeviceDTO device){
-        testRowCountAfterRequest(()->putAndTest(mappingPath,device,
-                HttpStatus.BAD_REQUEST),deviceRepo,0,testForNotNullResponseBody());
+    private void testPutForBadRequestAndNoRowCountChangeAndResponseBody(String mappingPath,DeviceDTO device){
+        put(mappingPath,HttpStatus.BAD_REQUEST)
+                .testRowChange(deviceRepo,0)
+                .responseBodyNotNull()
+                .test(device);
     }
     
-    private void testPutForNotFoundAndNoRowCountChange(String mappingPath,DeviceDTO device){
-        testRowCountAfterRequest(()->putAndTest(mappingPath,device,
-                HttpStatus.NOT_FOUND),deviceRepo,0,testForNotNullResponseBody());
+    private void testPutForNotFoundAndNoRowCountChangeAndResponseBody(String mappingPath,DeviceDTO device){
+        put(mappingPath,HttpStatus.NOT_FOUND)
+                .testRowChange(deviceRepo,0)
+                .responseBodyNotNull()
+                .test(device);
     }
     
     private Manufacturer insertDummyManufacturer(){
