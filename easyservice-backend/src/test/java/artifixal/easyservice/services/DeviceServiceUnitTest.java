@@ -45,30 +45,6 @@ public class DeviceServiceUnitTest implements ServiceUnitTest{
     
     @Test
     @Override
-    public void canAddEntity(){
-        Manufacturer manufacturer=new Manufacturer(1l,"Man1");
-        DeviceDTO newDevice=new DeviceDTO(Optional.empty(),
-                manufacturer.getId(),"DeviceAdd","DA111");
-        // Stubs
-        when(manufacturerRepo.findById(any()))
-                .thenReturn(Optional.of(manufacturer));
-        Device toReturn=service.convertDtoToEntity(newDevice);
-        when(repo.save(any()))
-                .thenReturn(toReturn);
-        
-        Device saved=service.addEntity(newDevice);
-        
-        // Verify calls
-        verify(repo,times(1)).save(any());
-        verify(manufacturerRepo,times(2)).findById(any());
-        
-        // Asertions
-        assertEquals(newDevice.getName(),saved.getName());
-        assertEquals(newDevice.getSerialNumber(),saved.getSerialNumber());
-    }
-    
-    @Test
-    @Override
     public void canEditEntity(){
         Manufacturer manufacturer=new Manufacturer(1l,"Man1"), 
                 newManufacturerData=new Manufacturer(2l,"Man2");

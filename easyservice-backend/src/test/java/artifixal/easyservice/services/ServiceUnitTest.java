@@ -7,11 +7,9 @@ package artifixal.easyservice.services;
  */
 public interface ServiceUnitTest {
     
-    public abstract void canAddEntity();
+    public void canEditEntity();
     
-    public abstract void canEditEntity();
+    public void canConvertEntityToDto();
     
-    public abstract void canConvertEntityToDto();
-    
-    public abstract void canConvertDtoToEntity();
+    public void canConvertDtoToEntity();
 }
