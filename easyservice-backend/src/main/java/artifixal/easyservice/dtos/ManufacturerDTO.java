@@ -13,7 +13,7 @@ import org.hibernate.validator.constraints.Length;
 public class ManufacturerDTO extends BaseDTO<Long>{
     
     @NotBlank(message="Manufacturer name can't be blank")
-    @Length(max=40,message="Manufacturer name can't exceed 40 characters")
+    @Length(max=40,message="Manufacturer name can't exceed {max} characters")
     public String name;
 
     public ManufacturerDTO(Optional<Long> id,String name){
