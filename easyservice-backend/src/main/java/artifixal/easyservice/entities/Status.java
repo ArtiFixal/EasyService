@@ -6,7 +6,6 @@ import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 
 /**
  * Entity class representing possible {@link Repair} status.
@@ -20,11 +19,12 @@ import lombok.NonNull;
 @NoArgsConstructor
 public class Status extends BaseEntity{
     
+    public final static int MAX_NAME_LENGTH=30;
+    
     /**
      * Name describing the status.
      */
-    @NonNull
-    @Column(length=30,nullable=false)
+    @Column(length=MAX_NAME_LENGTH,nullable=false)
     public String name;
 
     public Status(Long id,String name){

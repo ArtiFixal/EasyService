@@ -23,14 +23,17 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Device extends BaseEntity{
     
+    public final static int MAX_NAME_LENGTH=60;
+    public final static int MAX_SERIAL_NUMBER_LENGTH=40;
+    
     @ManyToOne
     @JoinColumn(name="manufacturerID",nullable=false)
     private Manufacturer manufacturer;
     
-    @Column(length=60,nullable=false)
+    @Column(length=MAX_NAME_LENGTH,nullable=false)
     public String name;
     
-    @Column(length=40,nullable=false)
+    @Column(length=MAX_SERIAL_NUMBER_LENGTH,nullable=false)
     public String serialNumber;
     
     @OneToMany(mappedBy="compatibleWith")

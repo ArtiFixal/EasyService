@@ -24,6 +24,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Part extends BaseEntity{
     
+    public final static int MAX_NAME_LENGTH=40;
+    
     @ManyToOne
     @JoinColumn(name="typeID",nullable=false)
     private PartType type;
@@ -38,7 +40,7 @@ public class Part extends BaseEntity{
     /**
      * Name describing the part.
      */
-    @Column(length=40,nullable=false)
+    @Column(length=MAX_NAME_LENGTH,nullable=false)
     public String name;
     
     /**

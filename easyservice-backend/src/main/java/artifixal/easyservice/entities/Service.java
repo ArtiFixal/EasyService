@@ -20,10 +20,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Service extends BaseEntity{
     
+    public final static int MAX_NAME_LENGTH=40;
+    
     /**
      * Name describing the service.
      */
-    @Column(length=40,nullable=false)
+    @Column(length=MAX_NAME_LENGTH,nullable=false)
     private String name;
     
     /**

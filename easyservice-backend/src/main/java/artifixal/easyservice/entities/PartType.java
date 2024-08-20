@@ -19,10 +19,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class PartType extends BaseEntity{
     
+    public final static int MAX_NAME_LENGTH=40;
+    
     /**
      * Name describing the type of part.
      */
-    @Column(length=40,nullable=false)
+    @Column(length=MAX_NAME_LENGTH,nullable=false)
     public String name;
 
     public PartType(Long id,String name){

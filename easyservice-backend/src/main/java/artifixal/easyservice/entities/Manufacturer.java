@@ -19,10 +19,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Manufacturer extends BaseEntity{
     
+    public final static int MAX_NAME_LENGTH=40;
+    
     /**
      * Name of the manufacturer.
      */
-    @Column(length=40,nullable=false)
+    @Column(length=MAX_NAME_LENGTH,nullable=false)
     public String name;
 
     public Manufacturer(Long id,String name){
