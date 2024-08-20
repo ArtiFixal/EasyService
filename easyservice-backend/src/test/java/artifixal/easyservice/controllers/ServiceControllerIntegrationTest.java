@@ -6,6 +6,7 @@ import artifixal.easyservice.entities.Service;
 import artifixal.easyservice.repositories.ServiceRepository;
 import java.math.BigDecimal;
 import java.util.Optional;
+import net.bytebuddy.utility.RandomString;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,8 @@ public class ServiceControllerIntegrationTest extends IntegrationTest{
 
     @Autowired
     private ServiceRepository serviceRepo;
+    
+    private final int lengthExceedingNameConstraint=Service.MAX_NAME_LENGTH+1;
     
     @Test
     public void getServiceDto(){
@@ -38,9 +41,8 @@ public class ServiceControllerIntegrationTest extends IntegrationTest{
                 .test();
     }
     
-    @Test
-    public void addService(){
-        ServiceDTO toInsert=new ServiceDTO(Optional.empty(),"Servcie2",
+    private void testSuccessfulAdd(String serviceName){
+        ServiceDTO toInsert=new ServiceDTO(Optional.empty(),serviceName,
                 BigDecimal.ONE);
         post("/v1/services/addService",HttpStatus.OK)
                 .testRowChange(serviceRepo,1)
@@ -48,8 +50,25 @@ public class ServiceControllerIntegrationTest extends IntegrationTest{
     }
     
     @Test
+    public void addService(){
+        testSuccessfulAdd("Servcie2");
+    }
+    
+    @Test
+    public void addServiceMaxNameLength(){
+        testSuccessfulAdd(RandomString.make(Service.MAX_NAME_LENGTH));
+    }
+    
+    private void testAddFail(HttpStatus exceptedStatus,ServiceDTO request){
+        post("/v1/services/addService",exceptedStatus)
+                .testRowChange(serviceRepo,0)
+                .responseBodyNotNull()
+                .test(request);
+    }
+    
+    @Test
     public void shouldNotAddServiceBlankName(){
-        testPostForBadRequestAndNoRowChangeAndResponseBody("/v1/services/addService",
+        testAddFail(HttpStatus.BAD_REQUEST,
                 new ServiceDTO(
                         Optional.empty(),
                         "\b \r \t \n",
@@ -59,8 +78,19 @@ public class ServiceControllerIntegrationTest extends IntegrationTest{
     }
     
     @Test
+    public void shouldNotAddServiceNameExceedsLengthConstraint(){
+        testAddFail(HttpStatus.BAD_REQUEST,
+                new ServiceDTO(
+                        Optional.empty(),
+                        RandomString.make(lengthExceedingNameConstraint),
+                        BigDecimal.ONE
+                )
+        );
+    }
+    
+    @Test
     public void shouldNotAddServiceNegativePrice(){
-        testPostForBadRequestAndNoRowChangeAndResponseBody("/v1/services/addService",
+        testAddFail(HttpStatus.BAD_REQUEST,
                 new ServiceDTO(
                         Optional.of(insertDummyService().getId()),
                         "ServiceNegative",
@@ -69,18 +99,34 @@ public class ServiceControllerIntegrationTest extends IntegrationTest{
         );
     }
     
-    @Test
-    public void editService(){
+    private void testSuccessfulEdit(String newServiceName){
         ServiceDTO toEdit=new ServiceDTO(Optional.of(insertDummyService().getId()),
-                "ServiceEdited",BigDecimal.TEN);
+                newServiceName,BigDecimal.TEN);
         put("/v1/services/editService",HttpStatus.OK)
                 .testRowChange(serviceRepo,0)
                 .test(toEdit);
     }
     
     @Test
+    public void editService(){
+        testSuccessfulEdit("ServiceEdited");
+    }
+    
+    @Test
+    public void editServiceMaxNameLength(){
+        testSuccessfulEdit(RandomString.make(Service.MAX_NAME_LENGTH));
+    }
+    
+    private void testEditFail(HttpStatus expectedStatus,ServiceDTO request){
+        put("/v1/services/editService",expectedStatus)
+                .testRowChange(serviceRepo,0)
+                .responseBodyNotNull()
+                .test(request);
+    }
+    
+    @Test
     public void shouldNotEditServiceNoID(){
-        testPutForBadRequestAndNoRowChangeAndResponseBody("/v1/services/editService",
+        testEditFail(HttpStatus.BAD_REQUEST,
                 new ServiceDTO(
                         Optional.empty(),
                         "ServiceNoID",
@@ -91,48 +137,46 @@ public class ServiceControllerIntegrationTest extends IntegrationTest{
     
     @Test
     public void shouldNotEditServiceNonexistingID(){
-        ServiceDTO toEdit=new ServiceDTO(Optional.of(1000000l),
-                "ServiceNonExisting",BigDecimal.ONE);
-        put("/v1/services/editService",HttpStatus.NOT_FOUND)
-                .testRowChange(serviceRepo,0)
-                .responseBodyNotNull()
-                .test(toEdit);
+        testEditFail(HttpStatus.NOT_FOUND,
+                new ServiceDTO(
+                        Optional.of(1000000l),
+                        "ServiceNonExisting",
+                        BigDecimal.ONE
+                )
+        );
     }
     
     @Test
     public void shouldNotEditServiceBlankName(){
-        testPutForBadRequestAndNoRowChangeAndResponseBody("/v1/services/editService",
+        testEditFail(HttpStatus.BAD_REQUEST,
                 new ServiceDTO(
                         Optional.of(insertDummyService().getId()),
                         "\t \b \n\r",
-                        BigDecimal.TEN
+                        BigDecimal.ONE
+                )
+        );
+    }
+    
+    @Test
+    public void shouldNotEditServiceNameExceedsLengthConstraint(){
+        testEditFail(HttpStatus.BAD_REQUEST,
+                new ServiceDTO(
+                        Optional.of(insertDummyService().getId()),
+                        RandomString.make(lengthExceedingNameConstraint),
+                        BigDecimal.ONE
                 )
         );
     }
     
     @Test
     public void shouldNotEditServiceNegativePrice(){
-        testPutForBadRequestAndNoRowChangeAndResponseBody("/v1/services/editService",
+        testEditFail(HttpStatus.BAD_REQUEST,
                 new ServiceDTO(
                         Optional.of(insertDummyService().getId()),
                         "ServiceNegative",
                         BigDecimal.valueOf(-1)
                 )
         );
-    }
-    
-    private void testPutForBadRequestAndNoRowChangeAndResponseBody(String mappingPath,ServiceDTO request){
-        put(mappingPath,HttpStatus.BAD_REQUEST)
-                .testRowChange(serviceRepo,0)
-                .responseBodyNotNull()
-                .test(request);
-    }
-    
-    private void testPostForBadRequestAndNoRowChangeAndResponseBody(String mappingPath,ServiceDTO request){
-        post(mappingPath,HttpStatus.BAD_REQUEST)
-                .testRowChange(serviceRepo,0)
-                .responseBodyNotNull()
-                .test(request);
     }
     
     private Service insertDummyService(){

@@ -7,6 +7,7 @@ import artifixal.easyservice.entities.Manufacturer;
 import artifixal.easyservice.repositories.DeviceRepository;
 import artifixal.easyservice.repositories.ManufacturerRepository;
 import java.util.Optional;
+import net.bytebuddy.utility.RandomString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,9 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
     
     @Autowired
     private DeviceRepository deviceRepo;
+    
+    private final int lengthExceedingNameConstraint=Device.MAX_NAME_LENGTH+1;
+    private final int lengthExceedingSerialNumberConstraint=Device.MAX_SERIAL_NUMBER_LENGTH+1;
     
     @Test
     public void getDeviceDto(){
@@ -50,38 +54,58 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
                 .test();
     }
     
-    @Test
-    public void addDevice(){
+    private void testSuccessfulDeviceAdd(String devicaName,String serialNumber){
         post("/v1/devices/addDevice",HttpStatus.OK)
                 .testRowChange(deviceRepo,1)
                 .test(
                         new DeviceDTO(
                             Optional.empty(),
                             insertDummyManufacturer().getId(),
-                            "Good PC 1",
-                            "GPC111"
+                            devicaName,
+                            serialNumber
                         )
                 );
+    }
+    
+    @Test
+    public void addDevice(){
+        testSuccessfulDeviceAdd("Good PC 1","GPC111");
+    }
+    
+    @Test
+    public void addDeviceMaxNameLength(){
+        testSuccessfulDeviceAdd(RandomString.make(Device.MAX_NAME_LENGTH),
+                "GPCMAXN");
+    }
+    
+    @Test
+    public void addDeviceMaxSerialLength(){
+        testSuccessfulDeviceAdd("Good PC MAXSN",
+                RandomString.make(Device.MAX_SERIAL_NUMBER_LENGTH));
+    }
+    
+    private void testAddFail(HttpStatus expectedStatus,DeviceDTO request){
+        post("/v1/devices/addDevice",expectedStatus)
+                .testRowChange(deviceRepo,0)
+                .responseBodyNotNull()
+                .test(request);
     }
     
     @Test
     public void shouldNotAddDeviceNonexistentManufacturer(){
-        post("/v1/devices/addDevice",HttpStatus.NOT_FOUND)
-                .testRowChange(deviceRepo,0)
-                .responseBodyNotNull()
-                .test(
-                        new DeviceDTO(
-                            Optional.empty(),
-                            100000,
-                            "Good PC 2",
-                            "GPC222"
-                        )
-                );
+        testAddFail(HttpStatus.NOT_FOUND,
+                new DeviceDTO(
+                        Optional.empty(),
+                        100000,
+                        "Good PC 2",
+                        "GPC222"
+                )
+        );
     }
     
     @Test
     public void shouldNotAddDeviceBlankName(){
-        testPostForBadRequestAndNoRowCountChangeAndResponseBody("/v1/devices/addDevice",
+        testAddFail(HttpStatus.BAD_REQUEST,
                 new DeviceDTO(
                         Optional.empty(),
                         insertDummyManufacturer().getId(),
@@ -93,7 +117,7 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
     
     @Test
     public void shouldNotAddDeviceBlankSerialNumber(){
-        testPostForBadRequestAndNoRowCountChangeAndResponseBody("/v1/devices/addDevice",
+        testAddFail(HttpStatus.BAD_REQUEST,
                 new DeviceDTO(
                         Optional.empty(),
                         insertDummyManufacturer().getId(),
@@ -104,12 +128,35 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
     }
     
     @Test
-    public void editDevice(){
+    public void shouldNotAddDeviceNameExceedsLengthConstraint(){
+        testAddFail(HttpStatus.BAD_REQUEST,
+                new DeviceDTO(
+                        Optional.empty(),
+                        insertDummyManufacturer().getId(),
+                        RandomString.make(lengthExceedingNameConstraint),
+                        "GPCLMAX"
+                )
+        );
+    }
+    
+    @Test
+    public void shouldNotAddDeviceSerialExceedsLengthConstraint(){
+        testAddFail(HttpStatus.BAD_REQUEST,
+                new DeviceDTO(
+                        Optional.empty(),
+                        insertDummyManufacturer().getId(),
+                        "Good PC 5",
+                        RandomString.make(lengthExceedingSerialNumberConstraint)
+                )
+        );
+    }
+    
+    private void testSuccessfulDeviceEdit(String deviceName,String serialNumber){
         Device device=insertDummyDevice();
         Manufacturer newMan=new Manufacturer(0l,"manE");
         newMan=manufacturerRepo.save(newMan);
         final DeviceDTO dataToUpdate=new DeviceDTO(Optional.of(device.getId()),
-                newMan.getId(),"GoodPC edited","GPCEEE");
+                newMan.getId(),deviceName,serialNumber);
         
         put("/v1/devices/editDevice",HttpStatus.OK)
                 .testRowChange(deviceRepo,0)
@@ -125,8 +172,32 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
     }
     
     @Test
+    public void editDevice(){
+        testSuccessfulDeviceEdit("GoodPC edited","GPCEEE");
+    }
+    
+    @Test
+    public void editDeviceMaxNameLength(){
+        testSuccessfulDeviceEdit(RandomString.make(Device.MAX_NAME_LENGTH),
+                "GPCEMAXN");
+    }
+    
+    @Test
+    public void editDeviceMaxServiceNumberLength(){
+        testSuccessfulDeviceEdit("GoodPC edited MaxS",
+                RandomString.make(Device.MAX_SERIAL_NUMBER_LENGTH));
+    }
+    
+    private void testEditFail(HttpStatus expectedStatus,DeviceDTO request){
+        put("/v1/devices/editDevice",expectedStatus)
+                .testRowChange(deviceRepo,0)
+                .responseBodyNotNull()
+                .test(request);
+    }
+    
+    @Test
     public void shouldNotEditDeviceNoDtoID(){
-        testPutForBadRequestAndNoRowCountChangeAndResponseBody("/v1/devices/editDevice",
+        testEditFail(HttpStatus.BAD_REQUEST,
                 new DeviceDTO(
                         Optional.empty(),
                         insertDummyManufacturer().getId(),
@@ -138,7 +209,7 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
     
     @Test
     public void shouldNotEditDeviceNonexistentID(){
-        testPutForNotFoundAndNoRowCountChangeAndResponseBody("/v1/devices/editDevice",
+        testEditFail(HttpStatus.NOT_FOUND,
                 new DeviceDTO(
                         Optional.of(100000l),
                         insertDummyManufacturer().getId(),
@@ -150,7 +221,7 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
     
     @Test
     public void shouldNotEditDeviceNonexistentManufacturer(){
-        testPutForNotFoundAndNoRowCountChangeAndResponseBody("/v1/devices/editDevice",
+        testEditFail(HttpStatus.NOT_FOUND,
                 new DeviceDTO(
                         Optional.of(insertDummyDevice().getId()),
                         100000,
@@ -162,9 +233,9 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
     
     @Test
     public void shouldNotEditDeviceBlankName(){
-        testPutForBadRequestAndNoRowCountChangeAndResponseBody("/v1/devices/editDevice",
+        testEditFail(HttpStatus.BAD_REQUEST,
                 new DeviceDTO(
-                        Optional.empty(),
+                        Optional.of(insertDummyDevice().getId()),
                         insertDummyManufacturer().getId(),
                         " \t \n \r \b ",
                         "GPCENAME"
@@ -174,9 +245,9 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
     
     @Test
     public void shouldNotEditDeviceBlankSerialNumber(){
-        testPutForBadRequestAndNoRowCountChangeAndResponseBody("/v1/devices/editDevice",
+        testEditFail(HttpStatus.BAD_REQUEST,
                 new DeviceDTO(
-                        Optional.empty(),
+                        Optional.of(insertDummyDevice().getId()),
                         insertDummyManufacturer().getId(),
                         "GoodPC blank serial",
                         " \t \n \r \b "
@@ -184,25 +255,28 @@ public class DeviceControllerIntegrationTest extends IntegrationTest{
         );
     }
     
-    private void testPostForBadRequestAndNoRowCountChangeAndResponseBody(String mappingPath,DeviceDTO device){
-        post(mappingPath,HttpStatus.BAD_REQUEST)
-                .testRowChange(deviceRepo,0)
-                .responseBodyNotNull()
-                .test(device);
+    @Test
+    public void shouldNotEditDeviceNameExceedsLengthConstraint(){
+        testEditFail(HttpStatus.BAD_REQUEST,
+                new DeviceDTO(
+                        Optional.of(insertDummyDevice().getId()),
+                        insertDummyManufacturer().getId(),
+                        RandomString.make(lengthExceedingNameConstraint),
+                        "GPCNEC"
+                )
+        );
     }
     
-    private void testPutForBadRequestAndNoRowCountChangeAndResponseBody(String mappingPath,DeviceDTO device){
-        put(mappingPath,HttpStatus.BAD_REQUEST)
-                .testRowChange(deviceRepo,0)
-                .responseBodyNotNull()
-                .test(device);
-    }
-    
-    private void testPutForNotFoundAndNoRowCountChangeAndResponseBody(String mappingPath,DeviceDTO device){
-        put(mappingPath,HttpStatus.NOT_FOUND)
-                .testRowChange(deviceRepo,0)
-                .responseBodyNotNull()
-                .test(device);
+    @Test
+    public void shouldNotEditDeiveSerialNumberExceedsLengthConstrint(){
+        testEditFail(HttpStatus.BAD_REQUEST,
+                new DeviceDTO(
+                        Optional.of(insertDummyDevice().getId()),
+                        insertDummyManufacturer().getId(),
+                        "GoodPC BadSerialNumber",
+                        RandomString.make(lengthExceedingSerialNumberConstraint)
+                )
+        );
     }
     
     private Manufacturer insertDummyManufacturer(){

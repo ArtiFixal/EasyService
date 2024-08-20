@@ -5,6 +5,7 @@ import artifixal.easyservice.dtos.PartTypeDTO;
 import artifixal.easyservice.entities.PartType;
 import artifixal.easyservice.repositories.PartTypeRepository;
 import java.util.Optional;
+import net.bytebuddy.utility.RandomString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,8 @@ public class PartTypeControllerIntegrationTest extends IntegrationTest{
 
     @Autowired
     private PartTypeRepository partTypeRepo;
+    
+    private final int lengthExceedingNameConstriant=PartType.MAX_NAME_LENGTH+1;
     
     @Test
     public void getTypeDto(){
@@ -43,27 +46,53 @@ public class PartTypeControllerIntegrationTest extends IntegrationTest{
                 .test();
     }
     
-    @Test
-    public void addType(){
-        PartTypeDTO toAdd=new PartTypeDTO(Optional.empty(),"TypeNew");
+    private void testSuccessfulTypeAdd(String typeName){
+        PartTypeDTO toAdd=new PartTypeDTO(Optional.empty(),typeName);
         post("/v1/types/addType",HttpStatus.OK)
                 .testRowChange(partTypeRepo,1)
                 .test(toAdd);
     }
     
     @Test
-    public void shouldNotAddTypeBlankName(){
-        PartTypeDTO toAdd=new PartTypeDTO(Optional.empty(),"\t  \n \r \b  ");
-        post("/v1/types/addType",HttpStatus.BAD_REQUEST)
-                .responseBodyNotNull()
-                .testRowChange(partTypeRepo,0)
-                .test(toAdd);
+    public void addType(){
+        testSuccessfulTypeAdd("TypeNew");
     }
     
     @Test
-    public void editType(){
+    public void addTypeMaxNameLength(){
+        testSuccessfulTypeAdd(RandomString.make(PartType.MAX_NAME_LENGTH));
+    }
+    
+    private void testAddFail(HttpStatus expectedStatus,PartTypeDTO request){
+        post("/v1/types/addType",expectedStatus)
+                .responseBodyNotNull()
+                .testRowChange(partTypeRepo,0)
+                .test(request);
+    }
+    
+    @Test
+    public void shouldNotAddTypeBlankName(){
+        testAddFail(HttpStatus.BAD_REQUEST,
+                new PartTypeDTO(
+                        Optional.empty(),
+                        "\t  \n \r \b  "
+                )
+        );
+    }
+    
+    @Test
+    public void shouldNotAddTypeNameExceedsLengthConstraint(){
+        testAddFail(HttpStatus.BAD_REQUEST,
+                new PartTypeDTO(
+                        Optional.empty(),
+                        RandomString.make(lengthExceedingNameConstriant)
+                )
+        );
+    }
+    
+    private void testSuccessfulEdit(String newTypeName){
         PartType type=insertDummyPartType();
-        PartTypeDTO toEdit=new PartTypeDTO(Optional.of(type.getId()),"TypeEdited");
+        PartTypeDTO toEdit=new PartTypeDTO(Optional.of(type.getId()),newTypeName);
         
         patch("/v1/types/editType",HttpStatus.OK)
                 .testRowChange(partTypeRepo,0)
@@ -76,8 +105,25 @@ public class PartTypeControllerIntegrationTest extends IntegrationTest{
     }
     
     @Test
+    public void editType(){
+        testSuccessfulEdit("TypeEdited");
+    }
+    
+    @Test
+    public void editTypeMaxNameLength(){
+        testSuccessfulEdit(RandomString.make(PartType.MAX_NAME_LENGTH));
+    }
+    
+    private void testEditFail(HttpStatus expectedStatus,PartTypeDTO request){
+        patch("/v1/types/editType",expectedStatus)
+                .testRowChange(partTypeRepo,0)
+                .responseBodyNotNull()
+                .test(request);
+    }
+    
+    @Test
     public void shoudlNotEditTypeNoID(){
-        testPatchForBadRequestAndNoRowChangeAndResponseBody("/v1/types/editType",
+        testEditFail(HttpStatus.BAD_REQUEST,
                 new PartTypeDTO(
                         Optional.empty(),
                         "TypeNoID"
@@ -87,15 +133,16 @@ public class PartTypeControllerIntegrationTest extends IntegrationTest{
     
     @Test
     public void shouldNotEditTypeNonexistentID(){
-        patch("/v1/types/editType",HttpStatus.NOT_FOUND)
-                .responseBodyNotNull()
-                .testRowChange(partTypeRepo,0)
-                .test(new PartTypeDTO(Optional.of(1000000l),"TypeNonExist"));
+        testEditFail(HttpStatus.NOT_FOUND,
+                new PartTypeDTO(
+                        Optional.of(1000000l),
+                        "TypeNonExist")
+        );
     }
     
     @Test
     public void shouldNotEditTypeBlankName(){
-        testPatchForBadRequestAndNoRowChangeAndResponseBody("/v1/types/editType",
+        testEditFail(HttpStatus.BAD_REQUEST,
                 new PartTypeDTO(
                         Optional.of(insertDummyPartType().getId()),
                         "\n \r \t \b "
@@ -103,11 +150,14 @@ public class PartTypeControllerIntegrationTest extends IntegrationTest{
         );
     }
     
-    private void testPatchForBadRequestAndNoRowChangeAndResponseBody(String mappingPath,PartTypeDTO request){
-        patch(mappingPath,HttpStatus.BAD_REQUEST)
-                .testRowChange(partTypeRepo,0)
-                .responseBodyNotNull()
-                .test(request);
+    @Test
+    public void shouldNotEditTypeNameExceedsLengthConstraint(){
+        testEditFail(HttpStatus.BAD_REQUEST,
+                new PartTypeDTO(
+                        Optional.of(insertDummyPartType().getId()),
+                        RandomString.make(lengthExceedingNameConstriant)
+                )
+        );
     }
     
     private PartType insertDummyPartType(){

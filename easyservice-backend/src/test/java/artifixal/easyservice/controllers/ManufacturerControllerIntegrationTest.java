@@ -5,6 +5,7 @@ import artifixal.easyservice.dtos.ManufacturerDTO;
 import artifixal.easyservice.entities.Manufacturer;
 import artifixal.easyservice.repositories.ManufacturerRepository;
 import java.util.Optional;
+import net.bytebuddy.utility.RandomString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,8 @@ public class ManufacturerControllerIntegrationTest extends IntegrationTest{
     
     @Autowired
     private ManufacturerRepository manufacturerRepo;
+    
+    private final int lengthExceedingNameConstraint=Manufacturer.MAX_NAME_LENGTH+1;
     
     @Test
     public void getManufacturerDto(){
@@ -43,19 +46,28 @@ public class ManufacturerControllerIntegrationTest extends IntegrationTest{
                 .test();
     }
     
-    @Test
-    public void addManufacturer(){
+    private void testSuccessfulManufactrerAdd(String manufacturerName){
         ManufacturerDTO toInsert=new ManufacturerDTO(Optional.empty(),
-                "ManInsert");
+                manufacturerName);
         post("/v1/manufacturers/addManufacturer",HttpStatus.OK)
                 .testRowChange(manufacturerRepo,1)
                 .test(toInsert);
     }
     
     @Test
-    public void shouldNotAddManufacturerBlankName(){
+    public void addManufacturer(){
+        testSuccessfulManufactrerAdd("ManInsert");
+    }
+    
+    @Test
+    public void addManufacturerMaxNameLength(){
+        testSuccessfulManufactrerAdd(RandomString
+                .make(Manufacturer.MAX_NAME_LENGTH));
+    }
+    
+    private void testBadRequestManufacturerAdd(String manufacturerName){
         ManufacturerDTO toInsert=new ManufacturerDTO(Optional.empty(),
-                " \t \n \r \b ");
+                manufacturerName);
         post("/v1/manufacturers/addManufacturer",HttpStatus.BAD_REQUEST)
                 .testRowChange(manufacturerRepo,0)
                 .responseBodyNotNull()
@@ -63,9 +75,20 @@ public class ManufacturerControllerIntegrationTest extends IntegrationTest{
     }
     
     @Test
-    public void editManufacturer(){
+    public void shouldNotAddManufacturerBlankName(){
+        testBadRequestManufacturerAdd(" \t \n \r \b ");
+    }
+    
+    @Test
+    public void shouldNotAddManufacturerNameExceedsLengthConstraint(){
+        testBadRequestManufacturerAdd(RandomString
+                .make(lengthExceedingNameConstraint));
+    }
+    
+    private void testSuccessfulManufacturerEdit(String manufacturerName){
         Manufacturer man=insertDummyManufacturer();
-        ManufacturerDTO toEdit=new ManufacturerDTO(Optional.of(man.getId()),"ManEdited");
+        ManufacturerDTO toEdit=new ManufacturerDTO(Optional.of(man.getId()),
+                manufacturerName);
         
         patch("/v1/manufacturers/editManufacturer",HttpStatus.OK)
                 .testRowChange(manufacturerRepo,0)
@@ -78,32 +101,58 @@ public class ManufacturerControllerIntegrationTest extends IntegrationTest{
     }
     
     @Test
-    public void shouldNotEditManufacturerNoID(){
-        ManufacturerDTO toEdit=new ManufacturerDTO(Optional.empty(),"ManNoID");
-        patch("/v1/manufacturers/editManufacturer",HttpStatus.BAD_REQUEST)
+    public void editManufacturer(){
+        testSuccessfulManufacturerEdit("ManEdited");
+    }
+    
+    @Test
+    public void editManufacturerMaxNameLength(){
+        testSuccessfulManufacturerEdit(RandomString
+                .make(Manufacturer.MAX_NAME_LENGTH));
+    }
+    
+    private void testEditFail(HttpStatus expectedStatus,ManufacturerDTO request){
+        patch("/v1/manufacturers/editManufacturer",expectedStatus)
                 .testRowChange(manufacturerRepo,0)
                 .responseBodyNotNull()
-                .test(toEdit);
+                .test(request);
+    }
+    
+    @Test
+    public void shouldNotEditManufacturerNoID(){
+        testEditFail(HttpStatus.BAD_REQUEST,
+                new ManufacturerDTO(
+                        Optional.empty(),
+                        "ManNoID")
+        );
     }
     
     @Test
     public void shouldNotEditManufacturerNonexistingID(){
-        // FIX: RestMethodRequest response type, recommit
-        ManufacturerDTO toEdit=new ManufacturerDTO(Optional.of(10000l),"ManNotFound");
-        patch("/v1/manufacturers/editManufacturer",HttpStatus.NOT_FOUND)
-                .testRowChange(manufacturerRepo,0)
-                .responseBodyNotNull()
-                .test(toEdit);
+        testEditFail(HttpStatus.NOT_FOUND,
+                new ManufacturerDTO(
+                        Optional.of(10000l),
+                        "ManNotFound"
+                )
+        );
     }
     
     @Test
     public void shouldNotEditManufacturerBlankName(){
-        ManufacturerDTO toEdit=new ManufacturerDTO(
-                Optional.of(insertDummyManufacturer().getId())," \t \r \n \b \t ");
-        patch("/v1/manufacturers/editManufacturer",HttpStatus.BAD_REQUEST)
-                .testRowChange(manufacturerRepo,0)
-                .responseBodyNotNull()
-                .test(toEdit);
+        testEditFail(HttpStatus.BAD_REQUEST,
+                new ManufacturerDTO(
+                        Optional.of(insertDummyManufacturer().getId()),
+                        " \t \r \n \b \t "
+                )
+        );
+    }
+    
+    @Test
+    public void shouldNotEditManufacturerNameExceedsLengthConstraint(){
+        testEditFail(HttpStatus.BAD_REQUEST,new ManufacturerDTO(
+                Optional.of(insertDummyManufacturer().getId()),
+                RandomString.make(lengthExceedingNameConstraint))
+        );
     }
     
     private Manufacturer insertDummyManufacturer(){
